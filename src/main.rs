@@ -6,8 +6,6 @@ const SCREEN_WIDTH : i32 = 40;
 const SCREEN_HEIGHT : i32 = 25;
 const FRAME_DURATION : f32 = 75.0;
 
-const DRAGON_FRAMES : [u16; 6] = [ 64, 1, 2, 3, 2, 1 ];
-
 enum Dir {
     Left,
     Right,
@@ -16,8 +14,8 @@ enum Dir {
 }
 
 struct Player {
-  x: i32,
-  y: i32,
+  pub x: i32,
+  pub y: i32,
   length: i32
 }
 
@@ -31,15 +29,21 @@ impl Player {
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
-      ctx.cls();
-      ctx.set(
-          self.x,
-          self.y,
-          YELLOW,
-          BLACK,
-          to_cp437('@')
-      );
+      ctx.set(self.x, self.y, YELLOW, BLACK, to_cp437('@'));
       ctx.set_active_console(0);
+  }
+
+  pub fn update_position(&mut self, ctx: &mut BTerm) {
+    // Left right up down no work for some reason.
+    if let Some(key) = ctx.key {
+      let delta = match key {
+          VirtualKeyCode::D => self.x += 10,
+          VirtualKeyCode::A => self.x -= 10,
+          VirtualKeyCode::W => self.y -= 10,
+          VirtualKeyCode::S => self.y += 10,
+          _ => self.x += 0,
+      };
+    }
   }
 }
 
@@ -57,62 +61,37 @@ impl Food {
       }
   }
 
-  fn render(&mut self, ctx: &mut BTerm, player_x : i32) {
-    ctx.set(
-        self.x,
-        self.y,
-        WHITE,
-        BLACK,
-        to_cp437('@')
-    );
+  fn render(&mut self, ctx: &mut BTerm) {
+    ctx.cls();
+    ctx.set(self.x, self.y, WHITE, BLACK, to_cp437('@'));
     ctx.set_active_console(0);
   }
-}
-
-enum GameMode {
-  Playing,
 }
 
 struct State {
   player: Player,
   frame_time: f32,
   food: Food,
-  mode: GameMode,
   score: i32,
 }
 
 impl State {
   fn new() -> Self {
       State {
-          player: Player::new(20, 30),
+          player: Player::new(20, 20),
           frame_time: 0.0,
           food: Food::new(),
-          mode: GameMode::Playing,
           score: 0,
       }
-  }
-
-  fn restart(&mut self) {
-      self.player = Player::new(5, SCREEN_WIDTH/2);
-      self.frame_time = 0.0;
-      self.food = Food::new();
-      self.mode = GameMode::Playing;
-      self.score = 0;
-  }
-
-  fn play(&mut self, ctx: &mut BTerm) {
-      ctx.cls_bg(NAVY);
-      self.player.render(ctx);
-      self.food.render(ctx, self.player.x);
   }
 }
 
 impl GameState for State {
   fn tick(&mut self, ctx: &mut BTerm) {
-      match self.mode {
-          // GameMode::End => self.dead(ctx),
-          GameMode::Playing => self.play(ctx),
-      }
+    ctx.cls();
+    self.food.render(ctx);
+    self.player.update_position(ctx);
+    self.player.render(ctx);
   }
 }
 
