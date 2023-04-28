@@ -7,16 +7,17 @@ const SCREEN_HEIGHT : i32 = 25;
 const FRAME_DURATION : f32 = 75.0;
 
 enum Dir {
-    Left,
-    Right,
-    Up,
-    Down
+  Static, // Only at the beginning.
+  Left,
+  Right,
+  Up,
+  Down
 }
 
 struct Player {
   pub x: i32,
   pub y: i32,
-  length: i32
+  pub dir: Dir
 }
 
 impl Player {
@@ -24,7 +25,7 @@ impl Player {
       Player {
           x: x,
           y: y,
-          length: 0
+          dir: Dir::Static
       }
   }
 
@@ -33,16 +34,26 @@ impl Player {
       ctx.set_active_console(0);
   }
 
-  pub fn update_position(&mut self, ctx: &mut BTerm) {
-    // Left right up down no work for some reason.
+  fn update_direction(&mut self, ctx: &mut BTerm) {
     if let Some(key) = ctx.key {
-      let delta = match key {
-          VirtualKeyCode::D => self.x += 10,
-          VirtualKeyCode::A => self.x -= 10,
-          VirtualKeyCode::W => self.y -= 10,
-          VirtualKeyCode::S => self.y += 10,
-          _ => self.x += 0,
+      match key {
+        VirtualKeyCode::D => self.dir = Dir::Left,
+        VirtualKeyCode::A => self.dir = Dir::Right,
+        VirtualKeyCode::W => self.dir = Dir::Up,
+        VirtualKeyCode::S => self.dir = Dir::Down,
+        _ => (),
       };
+    }
+  }
+
+  fn update_position(&mut self) {
+    // Left right up down no work for some reason.
+    match self.dir {
+        Dir::Left => self.x -= 1,
+        Dir::Right => self.x += 1,
+        Dir::Up => self.y += 1,
+        Dir::Down => self.y -= 1,
+        Dir::Static => (),
     }
   }
 }
@@ -90,15 +101,17 @@ impl GameState for State {
   fn tick(&mut self, ctx: &mut BTerm) {
     ctx.cls();
     self.food.render(ctx);
-    self.player.update_position(ctx);
+    self.player.update_direction(ctx);
+    self.player.update_position();
     self.player.render(ctx);
   }
 }
 
 fn main() -> BError {
-  let context = BTermBuilder::simple80x50()
-      .with_title("Flappy Dragon Enhanced")
-      .build()?;
+  let context = BTermBuilder::simple(50, 50)
+    .unwrap()
+    .with_title("Flappy Dragon Enhanced")
+    .build()?;
 
   main_loop(context, State::new())
 }
