@@ -2,8 +2,8 @@
 
 use bracket_lib::prelude::*;
 
-const SCREEN_WIDTH : i32 = 40;
-const SCREEN_HEIGHT : i32 = 25;
+const SCREEN_WIDTH : i32 = 50;
+const SCREEN_HEIGHT : i32 = 50;
 const FRAME_DURATION : f32 = 75.0;
 
 enum Dir {
@@ -17,7 +17,8 @@ enum Dir {
 struct Player {
   pub x: i32,
   pub y: i32,
-  pub dir: Dir
+  pub dir: Dir,
+  pub len: i32
 }
 
 impl Player {
@@ -25,6 +26,7 @@ impl Player {
       Player {
           x: x,
           y: y,
+          len: 1,
           dir: Dir::Static
       }
   }
@@ -47,14 +49,21 @@ impl Player {
   }
 
   fn update_position(&mut self) {
-    // Left right up down no work for some reason.
+  // Left right up down no work for some reason.
     match self.dir {
-        Dir::Left => self.x -= 1,
-        Dir::Right => self.x += 1,
-        Dir::Up => self.y += 1,
-        Dir::Down => self.y -= 1,
-        Dir::Static => (),
+      Dir::Left => self.x += 1,
+      Dir::Right => self.x -= 1,
+      Dir::Up => self.y -= 1,
+      Dir::Down => self.y += 1,
+      Dir::Static => ()
     }
+  }
+
+  fn is_out_of_bounds(&mut self) -> bool {
+    if (self.x <= 0 || self.x >= SCREEN_WIDTH || self.y <= 0 || self.y >= SCREEN_HEIGHT) {
+      return true;
+    }
+    return false;
   }
 }
 
@@ -81,7 +90,7 @@ impl Food {
 
 struct State {
   player: Player,
-  frame_time: f32,
+  ticks: u64,
   food: Food,
   score: i32,
 }
@@ -89,12 +98,14 @@ struct State {
 impl State {
   fn new() -> Self {
       State {
-          player: Player::new(20, 20),
-          frame_time: 0.0,
-          food: Food::new(),
-          score: 0,
+        player: Player::new(20, 20),
+        ticks: 0,
+        food: Food::new(),
+        score: 0,
       }
   }
+
+  // fn play() ->
 }
 
 impl GameState for State {
@@ -102,16 +113,24 @@ impl GameState for State {
     ctx.cls();
     self.food.render(ctx);
     self.player.update_direction(ctx);
-    self.player.update_position();
+    if self.ticks % 2 == 0 {
+      self.player.update_position();
+    }
+    if self.player.is_out_of_bounds() {
+      // TODO: die
+      println!("it's me im the problem, it's me");
+      return;
+    }
     self.player.render(ctx);
   }
 }
 
 fn main() -> BError {
-  let context = BTermBuilder::simple(50, 50)
+  let context = (
+    BTermBuilder::simple(50, 50)
     .unwrap()
-    .with_title("Flappy Dragon Enhanced")
-    .build()?;
-
+    .with_title("Snek")
+    .build()?
+  );
   main_loop(context, State::new())
 }
