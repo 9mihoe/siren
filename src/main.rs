@@ -112,15 +112,17 @@ impl Player {
 struct Food {
   x: i32,
   y: i32,
+  rng: RandomNumberGenerator
 }
 
 impl Food {
   fn new() -> Self {
-      let mut random = RandomNumberGenerator::new();
-      Food {
-          x: 20,
-          y: 10,
-      }
+    let mut rng_new = RandomNumberGenerator::new();
+    Food {
+        x: rng_new.range(10, 40),
+        y: rng_new.range(10, 40),
+        rng: rng_new
+    }
   }
 
   fn get_pos(&self) -> (i32, i32) {
@@ -134,8 +136,8 @@ impl Food {
   }
 
   fn respawn(&mut self, ctx: &mut BTerm) {
-    self.x = 10;
-    self.y = 10;
+    self.x = self.rng.range(10, 40);
+    self.y = self.rng.range(10, 40);
   }
 }
 
@@ -200,6 +202,7 @@ impl State {
             self.mode = GameMode::Playing;
             self.restart(ctx);
           },
+          VirtualKeyCode::Q => ctx.quitting = true,
           _ => {}
       }
     }
