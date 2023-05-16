@@ -60,10 +60,12 @@ impl Player {
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
-    if (self.x <= 0 || self.x >= SCREEN_WIDTH || self.y <= 0 || self.y >= SCREEN_HEIGHT) {
-      return true;
-    }
-    return false;
+    return (
+      self.x <= 0 
+      || self.x >= SCREEN_WIDTH 
+      || self.y <= 0 
+      || self.y >= SCREEN_HEIGHT
+    );
   }
 }
 
@@ -88,7 +90,13 @@ impl Food {
   }
 }
 
+enum GameMode {
+  Playing,
+  Dead
+}
+
 struct State {
+  mode: GameMode,
   player: Player,
   ticks: u64,
   food: Food,
@@ -98,6 +106,7 @@ struct State {
 impl State {
   fn new() -> Self {
       State {
+        mode: GameMode::Playing,
         player: Player::new(20, 20),
         ticks: 0,
         food: Food::new(),
@@ -105,23 +114,51 @@ impl State {
       }
   }
 
-  // fn play() ->
+  fn restart(&mut self, ctx: &mut BTerm) {
+    ctx.cls();
+    self.player = Player::new(20, 20);
+    self.ticks = 0;
+    self.food = Food::new();
+    self.score = 0;
+  }
+
+  fn play(&mut self, ctx: &mut BTerm) {
+    ctx.cls();
+    self.food.render(ctx);
+    self.player.update_direction(ctx);
+    if self.ticks % 3 == 0 {
+      self.player.update_position();
+    }
+    self.player.render(ctx);
+    if self.player.is_out_of_bounds() {
+      self.mode = GameMode::Dead;
+    }
+  }
+
+  fn dead(&mut self, ctx: &mut BTerm) {
+    ctx.cls();
+    ctx.print_centered(5, "You are dead!");
+    ctx.print_centered(8, "(P) Play Again");
+    ctx.print_centered(9, "(Q) Quit Game");
+
+    if let Some(key) = ctx.key {
+      match key {
+          VirtualKeyCode::P => {
+            self.mode = GameMode::Playing;
+            self.restart(ctx);
+          },
+          _ => {}
+      }
+    }
+  }
 }
 
 impl GameState for State {
   fn tick(&mut self, ctx: &mut BTerm) {
-    ctx.cls();
-    self.food.render(ctx);
-    self.player.update_direction(ctx);
-    if self.ticks % 2 == 0 {
-      self.player.update_position();
+    match self.mode {
+      GameMode::Playing => self.play(ctx),
+      GameMode::Dead => self.dead(ctx),
     }
-    if self.player.is_out_of_bounds() {
-      // TODO: die
-      println!("it's me im the problem, it's me");
-      return;
-    }
-    self.player.render(ctx);
   }
 }
 
