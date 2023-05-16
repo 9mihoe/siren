@@ -31,9 +31,45 @@ impl Player {
       }
   }
 
+  fn get_pos(&self) -> (i32, i32) {
+    return (self.x, self.y);
+  }
+
+  fn render_pixel(&mut self, ctx: &mut BTerm, x: i32, y: i32) {
+    ctx.set(x, y, YELLOW, BLACK, to_cp437('@'));
+  }
+
+  fn render_tail(&mut self, ctx: &mut BTerm) {
+    match self.dir {
+      Dir::Left => {
+        for i in 0..self.len {
+          self.render_pixel(ctx, self.x+i, self.y);
+        }
+      },
+      Dir::Right => {
+        for i in 0..self.len {
+          self.render_pixel(ctx, self.x-i, self.y);
+        }
+      },
+      Dir::Up => {
+        for i in 0..self.len {
+          self.render_pixel(ctx, self.x, self.y-i);
+        }
+      },
+      Dir::Down => {
+        for i in 0..self.len {
+          self.render_pixel(ctx, self.x, self.y+i);
+        }
+      },
+      Dir::Static => ()
+    }
+  }
+
   fn render(&mut self, ctx: &mut BTerm) {
-      ctx.set(self.x, self.y, YELLOW, BLACK, to_cp437('@'));
-      ctx.set_active_console(0);
+    // Always print the head of snek.
+    self.render_pixel(ctx, self.x, self.y);
+    self.render_tail(ctx);
+    ctx.set_active_console(0);
   }
 
   fn update_direction(&mut self, ctx: &mut BTerm) {
@@ -67,6 +103,10 @@ impl Player {
       || self.y >= SCREEN_HEIGHT
     );
   }
+
+  fn grow(&mut self) {
+    self.len += 1;
+  }
 }
 
 struct Food {
@@ -83,10 +123,19 @@ impl Food {
       }
   }
 
+  fn get_pos(&self) -> (i32, i32) {
+    return (self.x, self.y);
+  }
+
   fn render(&mut self, ctx: &mut BTerm) {
     ctx.cls();
     ctx.set(self.x, self.y, WHITE, BLACK, to_cp437('@'));
     ctx.set_active_console(0);
+  }
+
+  fn respawn(&mut self, ctx: &mut BTerm) {
+    self.x = 10;
+    self.y = 10;
   }
 }
 
@@ -126,12 +175,15 @@ impl State {
     ctx.cls();
     self.food.render(ctx);
     self.player.update_direction(ctx);
-    if self.ticks % 3 == 0 {
+    if self.ticks % 2 == 0 {
       self.player.update_position();
     }
     self.player.render(ctx);
     if self.player.is_out_of_bounds() {
       self.mode = GameMode::Dead;
+    }
+    if self.player.get_pos()==self.food.get_pos() {
+      self.food.respawn(ctx);
     }
   }
 
@@ -159,6 +211,7 @@ impl GameState for State {
       GameMode::Playing => self.play(ctx),
       GameMode::Dead => self.dead(ctx),
     }
+    self.ticks += 1;
   }
 }
 
