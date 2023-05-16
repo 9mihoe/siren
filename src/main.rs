@@ -183,6 +183,7 @@ impl State {
       self.mode = GameMode::Dead;
     }
     if self.player.get_pos()==self.food.get_pos() {
+      self.player.grow();
       self.food.respawn(ctx);
     }
   }
@@ -216,11 +217,9 @@ impl GameState for State {
 }
 
 fn main() -> BError {
-  let context = (
-    BTermBuilder::simple(50, 50)
+  let context = BTermBuilder::simple(50, 50)
     .unwrap()
     .with_title("Snek")
-    .build()?
-  );
+    .build()?;
   main_loop(context, State::new())
 }
