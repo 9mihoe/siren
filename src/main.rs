@@ -1,10 +1,10 @@
 // https://users.rust-lang.org/t/usage-of-extern-crate/73619
 
 use bracket_lib::prelude::*;
+use std::collections::HashSet;
 
 const SCREEN_WIDTH : i32 = 50;
 const SCREEN_HEIGHT : i32 = 50;
-const FRAME_DURATION : f32 = 75.0;
 
 enum Dir {
   Static, // Only at the beginning.
@@ -31,12 +31,15 @@ impl Player {
       }
   }
 
-  fn get_pos(&self) -> (i32, i32) {
-    return (self.x, self.y);
+  fn get_head(&self) -> HashSet<i32> {
+    return HashSet::from([self.x, self.x+1, self.y, self.y+1]);
   }
 
   fn render_pixel(&mut self, ctx: &mut BTerm, x: i32, y: i32) {
     ctx.set(x, y, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x+1, y, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x, y+1, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x+1, y+1, YELLOW, BLACK, to_cp437('@'));
   }
 
   fn render_tail(&mut self, ctx: &mut BTerm) {
@@ -96,12 +99,10 @@ impl Player {
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
-    return (
-      self.x <= 0 
+    return self.x <= 0 
       || self.x >= SCREEN_WIDTH 
       || self.y <= 0 
-      || self.y >= SCREEN_HEIGHT
-    );
+      || self.y >= SCREEN_HEIGHT;
   }
 
   fn grow(&mut self) {
@@ -125,13 +126,16 @@ impl Food {
     }
   }
 
-  fn get_pos(&self) -> (i32, i32) {
-    return (self.x, self.y);
+  fn get_pos(&self) -> HashSet<i32> {
+    return HashSet::from([self.x, self.y]);
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
     ctx.cls();
     ctx.set(self.x, self.y, WHITE, BLACK, to_cp437('@'));
+    ctx.set(self.x+1, self.y, WHITE, BLACK, to_cp437('@'));
+    ctx.set(self.x, self.y+1, WHITE, BLACK, to_cp437('@'));
+    ctx.set(self.x+1, self.y+1, WHITE, BLACK, to_cp437('@'));
     ctx.set_active_console(0);
   }
 
@@ -184,7 +188,7 @@ impl State {
     if self.player.is_out_of_bounds() {
       self.mode = GameMode::Dead;
     }
-    if self.player.get_pos()==self.food.get_pos() {
+    if !self.player.get_head().is_disjoint(&self.food.get_pos()) {
       self.player.grow();
       self.food.respawn(ctx);
     }
