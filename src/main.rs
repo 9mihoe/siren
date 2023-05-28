@@ -92,9 +92,11 @@ impl Player {
   }
 
   fn update_position(&mut self) {
-    self.tail.rotate_left(1);
-    self.tail.push_front(self.head);
-    self.tail.pop_back();
+    if self.tail.len() > 1 {
+      self.tail.rotate_left(1);
+      self.tail.push_front(self.head);
+      self.tail.pop_back();
+    }
     
     match self.dir {
       Dir::Left => self.head = Cell::left(self.head),
