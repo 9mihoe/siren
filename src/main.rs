@@ -1,10 +1,10 @@
 // https://users.rust-lang.org/t/usage-of-extern-crate/73619
 
 use bracket_lib::prelude::*;
-use std::collections::HashSet;
+use std::collections::VecDeque;
 
-const SCREEN_WIDTH : i32 = 50;
-const SCREEN_HEIGHT : i32 = 50;
+const SCREEN_WIDTH : i32 = 48;
+const SCREEN_HEIGHT : i32 = 48;
 
 enum Dir {
   Static, // Only at the beginning.
@@ -14,63 +14,67 @@ enum Dir {
   Down
 }
 
-struct Player {
+#[derive(PartialEq, Eq, Clone, Copy)]
+struct Cell {
   pub x: i32,
-  pub y: i32,
-  pub dir: Dir,
-  pub len: i32
+  pub y: i32
+}
+
+struct Player {
+  pub head: Cell,
+  pub tail: VecDeque<Cell>,
+  pub dir: Dir
+}
+
+impl Cell {
+  fn new(x: i32, y: i32) -> Self {
+    Cell{x: x, y:y}
+  }
+
+  fn render(&mut self, ctx: &mut BTerm) {
+    let x_pixel = 2*self.x;
+    let y_pixel = 2*self.y;
+    ctx.set(x_pixel, y_pixel, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+1, y_pixel, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x_pixel, y_pixel+1, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+1, y_pixel+1, YELLOW, BLACK, to_cp437('@'));
+  }
+
+  fn right(curr: Cell) -> Cell {
+    Cell::new(curr.x-1, curr.y)
+  }
+
+  fn left(curr: Cell) -> Cell {
+    Cell::new(curr.x+1, curr.y)
+  }
+
+  fn up(curr: Cell) -> Cell {
+    Cell::new(curr.x, curr.y+1)
+  }
+
+  fn down(curr: Cell) -> Cell {
+    Cell::new(curr.x, curr.y-1)
+  }
 }
 
 impl Player {
   fn new(x: i32, y: i32) -> Self {
       Player {
-          x: x,
-          y: y,
-          len: 1,
-          dir: Dir::Static
+        head: Cell::new(x, y),
+        tail: VecDeque::new(), 
+        dir: Dir::Static
       }
   }
 
-  fn get_head(&self) -> HashSet<i32> {
-    return HashSet::from([self.x, self.x+1, self.y, self.y+1]);
-  }
-
-  fn render_pixel(&mut self, ctx: &mut BTerm, x: i32, y: i32) {
-    ctx.set(x, y, YELLOW, BLACK, to_cp437('@'));
-    ctx.set(x+1, y, YELLOW, BLACK, to_cp437('@'));
-    ctx.set(x, y+1, YELLOW, BLACK, to_cp437('@'));
-    ctx.set(x+1, y+1, YELLOW, BLACK, to_cp437('@'));
-  }
-
   fn render_tail(&mut self, ctx: &mut BTerm) {
-    match self.dir {
-      Dir::Left => {
-        for i in 0..self.len {
-          self.render_pixel(ctx, self.x+i, self.y);
-        }
-      },
-      Dir::Right => {
-        for i in 0..self.len {
-          self.render_pixel(ctx, self.x-i, self.y);
-        }
-      },
-      Dir::Up => {
-        for i in 0..self.len {
-          self.render_pixel(ctx, self.x, self.y-i);
-        }
-      },
-      Dir::Down => {
-        for i in 0..self.len {
-          self.render_pixel(ctx, self.x, self.y+i);
-        }
-      },
-      Dir::Static => ()
+    for i in self.tail.iter_mut() {
+      i.render(ctx);
     }
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
     // Always print the head of snek.
-    self.render_pixel(ctx, self.x, self.y);
+    self.head.render(ctx);
     self.render_tail(ctx);
     ctx.set_active_console(0);
   }
@@ -88,60 +92,63 @@ impl Player {
   }
 
   fn update_position(&mut self) {
-  // Left right up down no work for some reason.
+    self.tail.rotate_left(1);
+    self.tail.push_front(self.head);
+    self.tail.pop_back();
+    
     match self.dir {
-      Dir::Left => self.x += 1,
-      Dir::Right => self.x -= 1,
-      Dir::Up => self.y -= 1,
-      Dir::Down => self.y += 1,
+      Dir::Left => self.head = Cell::left(self.head),
+      Dir::Right => self.head = Cell::right(self.head),
+      Dir::Up => self.head = Cell::up(self.head),
+      Dir::Down => self.head = Cell::down(self.head),
       Dir::Static => ()
     }
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
-    return self.x <= 0 
-      || self.x >= SCREEN_WIDTH 
-      || self.y <= 0 
-      || self.y >= SCREEN_HEIGHT;
+    return self.head.x+1 <= 0 
+      || self.head.x+1 >= SCREEN_WIDTH 
+      || self.head.y+1 <= 0 
+      || self.head.y+1 >= SCREEN_HEIGHT;
   }
 
   fn grow(&mut self) {
-    self.len += 1;
+    let last_cell = self.tail[self.tail.len()-1];
+    match self.dir {
+      Dir::Left => self.tail.push_back(Cell::left(last_cell)),
+      Dir::Right => self.tail.push_back(Cell::right(last_cell)),
+      Dir::Up => self.tail.push_back(Cell::up(last_cell)),
+      Dir::Down => self.tail.push_back(Cell::down(last_cell)),
+      Dir::Static => ()
+    }
   }
 }
 
 struct Food {
-  x: i32,
-  y: i32,
-  rng: RandomNumberGenerator
+  pub pos: Cell,
+  pos_gen: RandomNumberGenerator
 }
 
 impl Food {
   fn new() -> Self {
     let mut rng_new = RandomNumberGenerator::new();
     Food {
-        x: rng_new.range(10, 40),
-        y: rng_new.range(10, 40),
-        rng: rng_new
+      pos: Cell::new(rng_new.range(0, 12), rng_new.range(0, 12)),
+      pos_gen: rng_new
     }
-  }
-
-  fn get_pos(&self) -> HashSet<i32> {
-    return HashSet::from([self.x, self.y]);
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
     ctx.cls();
-    ctx.set(self.x, self.y, WHITE, BLACK, to_cp437('@'));
-    ctx.set(self.x+1, self.y, WHITE, BLACK, to_cp437('@'));
-    ctx.set(self.x, self.y+1, WHITE, BLACK, to_cp437('@'));
-    ctx.set(self.x+1, self.y+1, WHITE, BLACK, to_cp437('@'));
+    self.pos.render(ctx);
     ctx.set_active_console(0);
   }
 
-  fn respawn(&mut self, ctx: &mut BTerm) {
-    self.x = self.rng.range(10, 40);
-    self.y = self.rng.range(10, 40);
+  fn respawn(&mut self) {
+    self.pos = Cell::new(
+      self.pos_gen.range(0, 12), 
+      self.pos_gen.range(0, 12)
+    );
   }
 }
 
@@ -162,7 +169,7 @@ impl State {
   fn new() -> Self {
       State {
         mode: GameMode::Playing,
-        player: Player::new(20, 20),
+        player: Player::new(2, 2),
         ticks: 0,
         food: Food::new(),
         score: 0,
@@ -188,9 +195,9 @@ impl State {
     if self.player.is_out_of_bounds() {
       self.mode = GameMode::Dead;
     }
-    if !self.player.get_head().is_disjoint(&self.food.get_pos()) {
+    if self.player.head == self.food.pos {
       self.player.grow();
-      self.food.respawn(ctx);
+      self.food.respawn();
     }
   }
 
@@ -224,7 +231,7 @@ impl GameState for State {
 }
 
 fn main() -> BError {
-  let context = BTermBuilder::simple(50, 50)
+  let context = BTermBuilder::simple(SCREEN_WIDTH, SCREEN_HEIGHT)
     .unwrap()
     .with_title("Snek")
     .build()?;
