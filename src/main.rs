@@ -49,11 +49,11 @@ impl Cell {
   }
 
   fn up(curr: Cell) -> Cell {
-    Cell::new(curr.x, curr.y+1)
+    Cell::new(curr.x, curr.y-1)
   }
 
   fn down(curr: Cell) -> Cell {
-    Cell::new(curr.x, curr.y-1)
+    Cell::new(curr.x, curr.y+1)
   }
 }
 
@@ -115,7 +115,7 @@ impl Player {
   }
 
   fn grow(&mut self) {
-    let last_cell = self.tail[self.tail.len()-1];
+    let last_cell = if self.tail.len()> 0 {self.tail[self.tail.len()-1]} else {self.head};
     match self.dir {
       Dir::Left => self.tail.push_back(Cell::left(last_cell)),
       Dir::Right => self.tail.push_back(Cell::right(last_cell)),
@@ -190,7 +190,8 @@ impl State {
     ctx.cls();
     self.food.render(ctx);
     self.player.update_direction(ctx);
-    if self.ticks % 2 == 0 {
+    if self.ticks % 5 == 0 {
+      // println!("ticks: {}", self.ticks);
       self.player.update_position();
     }
     self.player.render(ctx);
