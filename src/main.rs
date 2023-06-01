@@ -31,13 +31,13 @@ impl Cell {
     Cell{x: x, y:y}
   }
 
-  fn render(&mut self, ctx: &mut BTerm) {
+  fn render(&mut self, ctx: &mut BTerm, color: RGB) {
     let x_pixel = 2*self.x;
     let y_pixel = 2*self.y;
-    ctx.set(x_pixel, y_pixel, YELLOW, BLACK, to_cp437('@'));
-    ctx.set(x_pixel+1, y_pixel, YELLOW, BLACK, to_cp437('@'));
-    ctx.set(x_pixel, y_pixel+1, YELLOW, BLACK, to_cp437('@'));
-    ctx.set(x_pixel+1, y_pixel+1, YELLOW, BLACK, to_cp437('@'));
+    ctx.set(x_pixel, y_pixel, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+1, y_pixel, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel, y_pixel+1, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+1, y_pixel+1, color, BLACK, to_cp437('@'));
   }
 
   fn right(curr: Cell) -> Cell {
@@ -68,14 +68,19 @@ impl Player {
 
   fn render_tail(&mut self, ctx: &mut BTerm) {
     for i in self.tail.iter_mut() {
-      i.render(ctx);
+      i.render(ctx, RGB::named(LAVENDER_BLUSH));
     }
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
     // Always print the head of snek.
-    self.head.render(ctx);
+    self.head.render(ctx, RGB::named(LAVENDER_BLUSH));
     self.render_tail(ctx);
+    // println!("head: x={}, y={}", self.head.x, self.head.y);
+    // for i in self.tail.iter_mut() {
+    //   println!("tail: x={}, y={}", i.x, i.y);
+    // }
+    // println!();
     ctx.set_active_console(0);
   }
 
@@ -92,18 +97,19 @@ impl Player {
   }
 
   fn update_position(&mut self) {
-    if self.tail.len() > 1 {
-      self.tail.rotate_left(1);
-      self.tail.push_front(self.head);
-      self.tail.pop_back();
-    }
-    
+    let prev_head = self.head;
     match self.dir {
       Dir::Left => self.head = Cell::left(self.head),
       Dir::Right => self.head = Cell::right(self.head),
       Dir::Up => self.head = Cell::up(self.head),
       Dir::Down => self.head = Cell::down(self.head),
       Dir::Static => ()
+    }
+    if self.tail.len() > 1 {
+      println!("tail len > 1");
+      self.tail.rotate_left(1);
+      self.tail.push_front(prev_head);
+      self.tail.pop_back();
     }
   }
 
@@ -135,21 +141,21 @@ impl Food {
   fn new() -> Self {
     let mut rng_new = RandomNumberGenerator::new();
     Food {
-      pos: Cell::new(rng_new.range(0, 12), rng_new.range(0, 12)),
+      pos: Cell::new(rng_new.range(2, 10), rng_new.range(2, 10)),
       pos_gen: rng_new
     }
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
     ctx.cls();
-    self.pos.render(ctx);
+    self.pos.render(ctx, RGB::named(PALETURQUOISE));
     ctx.set_active_console(0);
   }
 
   fn respawn(&mut self) {
     self.pos = Cell::new(
-      self.pos_gen.range(0, 12), 
-      self.pos_gen.range(0, 12)
+      self.pos_gen.range(2, 10), 
+      self.pos_gen.range(2, 10)
     );
   }
 }
@@ -199,6 +205,7 @@ impl State {
       self.mode = GameMode::Dead;
     }
     if self.player.head == self.food.pos {
+      println!("food eaten!");
       self.player.grow();
       self.food.respawn();
     }
