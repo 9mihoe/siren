@@ -76,11 +76,6 @@ impl Player {
     // Always print the head of snek.
     self.head.render(ctx, RGB::named(LAVENDER_BLUSH));
     self.render_tail(ctx);
-    // println!("head: x={}, y={}", self.head.x, self.head.y);
-    // for i in self.tail.iter_mut() {
-    //   println!("tail: x={}, y={}", i.x, i.y);
-    // }
-    // println!();
     ctx.set_active_console(0);
   }
 
@@ -117,6 +112,14 @@ impl Player {
       || self.head.x+1 >= SCREEN_WIDTH 
       || self.head.y+1 <= 0 
       || self.head.y+1 >= SCREEN_HEIGHT;
+  }
+
+  fn has_eaten_self(&mut self) -> bool {
+    let has_eaten = self.tail.contains(&self.head);
+    if has_eaten {
+      println!("has eaten");
+    }
+    return has_eaten;
   }
 
   fn grow(&mut self) {
@@ -202,7 +205,7 @@ impl State {
       self.player.update_position();
     }
     self.player.render(ctx);
-    if self.player.is_out_of_bounds() {
+    if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
       self.mode = GameMode::Dead;
     }
     if self.player.head == self.food.pos {
