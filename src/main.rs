@@ -105,8 +105,7 @@ impl Player {
       Dir::Down => self.head = Cell::down(self.head),
       Dir::Static => ()
     }
-    if self.tail.len() > 1 {
-      println!("tail len > 1");
+    if self.tail.len() > 0 {
       self.tail.rotate_left(1);
       self.tail.push_front(prev_head);
       self.tail.pop_back();
@@ -122,6 +121,7 @@ impl Player {
 
   fn grow(&mut self) {
     let last_cell = if self.tail.len()> 0 {self.tail[self.tail.len()-1]} else {self.head};
+    println!("{}", self.tail.len());
     match self.dir {
       Dir::Left => self.tail.push_back(Cell::left(last_cell)),
       Dir::Right => self.tail.push_back(Cell::right(last_cell)),
@@ -129,6 +129,7 @@ impl Player {
       Dir::Down => self.tail.push_back(Cell::down(last_cell)),
       Dir::Static => ()
     }
+    println!("{}", self.tail.len());
   }
 }
 
