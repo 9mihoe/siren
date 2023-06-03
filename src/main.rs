@@ -132,6 +132,7 @@ impl Player {
       Dir::Down => self.tail.push_back(Cell::down(last_cell)),
       Dir::Static => ()
     }
+    self.update_position();
     println!("{}", self.tail.len());
   }
 }
