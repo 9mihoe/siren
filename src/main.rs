@@ -14,7 +14,7 @@ enum Dir {
   Down
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct Cell {
   pub x: i32,
   pub y: i32
@@ -68,13 +68,13 @@ impl Player {
 
   fn render_tail(&mut self, ctx: &mut BTerm) {
     for i in self.tail.iter_mut() {
-      i.render(ctx, RGB::named(LAVENDER_BLUSH));
+      i.render(ctx, RGB::named(SKYBLUE1));
     }
   }
 
   fn render(&mut self, ctx: &mut BTerm) {
     // Always print the head of snek.
-    self.head.render(ctx, RGB::named(LAVENDER_BLUSH));
+    self.head.render(ctx, RGB::named(SKYBLUE1));
     self.render_tail(ctx);
     ctx.set_active_console(0);
   }
@@ -93,6 +93,7 @@ impl Player {
 
   fn update_position(&mut self) {
     let prev_head = self.head;
+    println!("before {:?} {:?}", self.head, self.tail);
     match self.dir {
       Dir::Left => self.head = Cell::left(self.head),
       Dir::Right => self.head = Cell::right(self.head),
@@ -100,11 +101,14 @@ impl Player {
       Dir::Down => self.head = Cell::down(self.head),
       Dir::Static => ()
     }
-    if self.tail.len() > 0 {
+    if self.tail.len() == 2 {
+      self.tail[1] = self.tail[0];
+    } else if self.tail.len() > 0 {
       self.tail.rotate_left(1);
-      self.tail.push_front(prev_head);
-      self.tail.pop_back();
     }
+    self.tail.push_front(prev_head);
+    self.tail.pop_back();
+    println!("after {:?} {:?}", self.head, self.tail);
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
@@ -117,23 +121,26 @@ impl Player {
   fn has_eaten_self(&mut self) -> bool {
     let has_eaten = self.tail.contains(&self.head);
     if has_eaten {
-      println!("has eaten");
+      println!("has eaten self");
     }
     return has_eaten;
   }
 
   fn grow(&mut self) {
+    // let prev_head = self.head;
     let last_cell = if self.tail.len()> 0 {self.tail[self.tail.len()-1]} else {self.head};
-    println!("{}", self.tail.len());
     match self.dir {
-      Dir::Left => self.tail.push_back(Cell::left(last_cell)),
-      Dir::Right => self.tail.push_back(Cell::right(last_cell)),
-      Dir::Up => self.tail.push_back(Cell::up(last_cell)),
-      Dir::Down => self.tail.push_back(Cell::down(last_cell)),
+      Dir::Left => self.tail.push_back(Cell::right(last_cell)),
+      Dir::Right => self.tail.push_back(Cell::left(last_cell)),
+      Dir::Up => self.tail.push_back(Cell::down(last_cell)),
+      Dir::Down => self.tail.push_back(Cell::up(last_cell)),
       Dir::Static => ()
     }
-    self.update_position();
-    println!("{}", self.tail.len());
+    
+    // if self.tail.len() > 1 {
+    //   self.tail.rotate_left(1);
+    //   self.tail.push_front(prev_head);
+    // }
   }
 }
 
@@ -153,7 +160,7 @@ impl Food {
 
   fn render(&mut self, ctx: &mut BTerm) {
     ctx.cls();
-    self.pos.render(ctx, RGB::named(PALETURQUOISE));
+    self.pos.render(ctx, RGB::named(PINK));
     ctx.set_active_console(0);
   }
 
@@ -204,16 +211,16 @@ impl State {
     if self.ticks % 5 == 0 {
       // println!("ticks: {}", self.ticks);
       self.player.update_position();
+      if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
+        self.mode = GameMode::Dead;
+      }
+      if self.player.head == self.food.pos {
+        println!("food eaten!");
+        self.player.grow();
+        self.food.respawn();
+      }
     }
     self.player.render(ctx);
-    if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
-      self.mode = GameMode::Dead;
-    }
-    if self.player.head == self.food.pos {
-      println!("food eaten!");
-      self.player.grow();
-      self.food.respawn();
-    }
   }
 
   fn dead(&mut self, ctx: &mut BTerm) {
