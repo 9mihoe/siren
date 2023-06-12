@@ -100,6 +100,8 @@ impl Player {
   }
 
   fn update_position(&mut self) {
+    // Make sure if going left, cannot go right
+    // etc. for all the incompatible direction
     let prev_head = self.head;
     match self.dir {
       Dir::Left => self.head = Cell::left(self.head),
