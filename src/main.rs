@@ -93,7 +93,6 @@ impl Player {
 
   fn update_position(&mut self) {
     let prev_head = self.head;
-    println!("before {:?} {:?}", self.head, self.tail);
     match self.dir {
       Dir::Left => self.head = Cell::left(self.head),
       Dir::Right => self.head = Cell::right(self.head),
@@ -101,14 +100,8 @@ impl Player {
       Dir::Down => self.head = Cell::down(self.head),
       Dir::Static => ()
     }
-    if self.tail.len() == 2 {
-      self.tail[1] = self.tail[0];
-    } else if self.tail.len() > 0 {
-      self.tail.rotate_left(1);
-    }
     self.tail.push_front(prev_head);
     self.tail.pop_back();
-    println!("after {:?} {:?}", self.head, self.tail);
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
