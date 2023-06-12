@@ -32,12 +32,17 @@ impl Cell {
   }
 
   fn render(&mut self, ctx: &mut BTerm, color: RGB) {
-    let x_pixel = 2*self.x;
-    let y_pixel = 2*self.y;
+    let x_pixel = 3*self.x;
+    let y_pixel = 3*self.y;
     ctx.set(x_pixel, y_pixel, color, BLACK, to_cp437('@'));
     ctx.set(x_pixel+1, y_pixel, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+2, y_pixel, color, BLACK, to_cp437('@'));
     ctx.set(x_pixel, y_pixel+1, color, BLACK, to_cp437('@'));
     ctx.set(x_pixel+1, y_pixel+1, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+2, y_pixel+1, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel, y_pixel+2, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+1, y_pixel+2, color, BLACK, to_cp437('@'));
+    ctx.set(x_pixel+2, y_pixel+2, color, BLACK, to_cp437('@'));
   }
 
   fn right(curr: Cell) -> Cell {
@@ -59,11 +64,14 @@ impl Cell {
 
 impl Player {
   fn new(x: i32, y: i32) -> Self {
-      Player {
-        head: Cell::new(x, y),
-        tail: VecDeque::new(), 
-        dir: Dir::Static
-      }
+    let h = Cell::new(x, y);
+    let mut t = VecDeque::new();
+    t.push_back(Cell::left(h));
+    Player {
+      head: h,
+      tail: t, 
+      dir: Dir::Left
+    }
   }
 
   fn render_tail(&mut self, ctx: &mut BTerm) {
@@ -201,14 +209,12 @@ impl State {
     ctx.cls();
     self.food.render(ctx);
     self.player.update_direction(ctx);
-    if self.ticks % 5 == 0 {
-      // println!("ticks: {}", self.ticks);
+    if self.ticks % 6 == 0 {
       self.player.update_position();
       if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
         self.mode = GameMode::Dead;
       }
       if self.player.head == self.food.pos {
-        println!("food eaten!");
         self.player.grow();
         self.food.respawn();
       }
