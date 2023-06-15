@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 const SCREEN_WIDTH : i32 = 48;
 const SCREEN_HEIGHT : i32 = 48;
 
+#[derive(Debug, Clone, Copy)]
 enum Dir {
   Static, // Only at the beginning.
   Left,
@@ -23,6 +24,7 @@ struct Cell {
 struct Player {
   pub head: Cell,
   pub tail: VecDeque<Cell>,
+  pub prev_dir: Dir,
   pub dir: Dir
 }
 
@@ -70,7 +72,8 @@ impl Player {
     Player {
       head: h,
       tail: t, 
-      dir: Dir::Left
+      prev_dir: Dir::Static,
+      dir: Dir::Static
     }
   }
 
@@ -88,6 +91,7 @@ impl Player {
   }
 
   fn update_direction(&mut self, ctx: &mut BTerm) {
+    self.prev_dir = self.dir;
     if let Some(key) = ctx.key {
       match key {
         VirtualKeyCode::D => self.dir = Dir::Left,
@@ -97,21 +101,31 @@ impl Player {
         _ => (),
       };
     }
+    println!("{:?} {:?}", self.prev_dir, self.dir);
   }
 
   fn update_position(&mut self) {
     // Make sure if going left, cannot go right
     // etc. for all the incompatible direction
     let prev_head = self.head;
-    match self.dir {
-      Dir::Left => self.head = Cell::left(self.head),
-      Dir::Right => self.head = Cell::right(self.head),
-      Dir::Up => self.head = Cell::up(self.head),
-      Dir::Down => self.head = Cell::down(self.head),
-      Dir::Static => ()
+    let prev_dir_hor = matches!(self.prev_dir, Dir::Left) || matches!(self.prev_dir, Dir::Right);
+    let prev_dir_ver = matches!(self.prev_dir, Dir::Up) || matches!(self.prev_dir, Dir::Down);
+    let curr_dir_hor = matches!(self.dir, Dir::Left) || matches!(self.dir, Dir::Right);
+    let curr_dir_ver = matches!(self.dir, Dir::Up) || matches!(self.dir, Dir::Down);
+    let is_valid_dir = (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static);
+    println!("{} {} {} {}", prev_dir_hor, curr_dir_ver, prev_dir_ver, curr_dir_hor);
+    if is_valid_dir {
+      println!("MILLKKKKKKSHAKKEEEE");
+      match self.dir {
+        Dir::Left => self.head = Cell::left(self.head),
+        Dir::Right => self.head = Cell::right(self.head),
+        Dir::Up => self.head = Cell::up(self.head),
+        Dir::Down => self.head = Cell::down(self.head),
+        Dir::Static => return
+      }
+      self.tail.push_front(prev_head);
+      self.tail.pop_back();
     }
-    self.tail.push_front(prev_head);
-    self.tail.pop_back();
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
@@ -139,11 +153,6 @@ impl Player {
       Dir::Down => self.tail.push_back(Cell::up(last_cell)),
       Dir::Static => ()
     }
-    
-    // if self.tail.len() > 1 {
-    //   self.tail.rotate_left(1);
-    //   self.tail.push_front(prev_head);
-    // }
   }
 }
 
