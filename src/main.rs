@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 const SCREEN_WIDTH : i32 = 48;
 const SCREEN_HEIGHT : i32 = 48;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Dir {
   Static, // Only at the beginning.
   Left,
@@ -112,8 +112,8 @@ impl Player {
     let prev_dir_ver = matches!(self.prev_dir, Dir::Up) || matches!(self.prev_dir, Dir::Down);
     let curr_dir_hor = matches!(self.dir, Dir::Left) || matches!(self.dir, Dir::Right);
     let curr_dir_ver = matches!(self.dir, Dir::Up) || matches!(self.dir, Dir::Down);
-    let is_valid_dir = (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static);
-    println!("{} {} {} {}", prev_dir_hor, curr_dir_ver, prev_dir_ver, curr_dir_hor);
+    let is_valid_dir = (self.dir==self.prev_dir) || (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static);
+    println!("{} {} {}", (prev_dir_hor && curr_dir_ver), (prev_dir_ver && curr_dir_hor), matches!(self.dir, Dir::Static));
     if is_valid_dir {
       println!("MILLKKKKKKSHAKKEEEE");
       match self.dir {
