@@ -110,7 +110,7 @@ impl Player {
     let prev_dir_ver = matches!(self.prev_dir, Dir::Up) || matches!(self.prev_dir, Dir::Down);
     let curr_dir_hor = matches!(self.dir, Dir::Left) || matches!(self.dir, Dir::Right);
     let curr_dir_ver = matches!(self.dir, Dir::Up) || matches!(self.dir, Dir::Down);
-    let is_valid_dir = (self.dir==self.prev_dir) || (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static);
+    let is_valid_dir = (self.dir==self.prev_dir) || (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static) || matches!(self.prev_dir, Dir::Static);
     if is_valid_dir {
       match self.dir {
         Dir::Left => self.head = Cell::left(self.head),
@@ -121,8 +121,8 @@ impl Player {
       }
       self.tail.push_front(prev_head);
       self.tail.pop_back();
+      self.prev_dir = self.dir;
     }
-    self.prev_dir = self.dir;
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
