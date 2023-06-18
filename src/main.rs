@@ -91,7 +91,6 @@ impl Player {
   }
 
   fn update_direction(&mut self, ctx: &mut BTerm) {
-    self.prev_dir = self.dir;
     if let Some(key) = ctx.key {
       match key {
         VirtualKeyCode::D => self.dir = Dir::Left,
@@ -101,7 +100,6 @@ impl Player {
         _ => (),
       };
     }
-    println!("{:?} {:?}", self.prev_dir, self.dir);
   }
 
   fn update_position(&mut self) {
@@ -113,9 +111,7 @@ impl Player {
     let curr_dir_hor = matches!(self.dir, Dir::Left) || matches!(self.dir, Dir::Right);
     let curr_dir_ver = matches!(self.dir, Dir::Up) || matches!(self.dir, Dir::Down);
     let is_valid_dir = (self.dir==self.prev_dir) || (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static);
-    println!("{} {} {}", (prev_dir_hor && curr_dir_ver), (prev_dir_ver && curr_dir_hor), matches!(self.dir, Dir::Static));
     if is_valid_dir {
-      println!("MILLKKKKKKSHAKKEEEE");
       match self.dir {
         Dir::Left => self.head = Cell::left(self.head),
         Dir::Right => self.head = Cell::right(self.head),
@@ -126,6 +122,7 @@ impl Player {
       self.tail.push_front(prev_head);
       self.tail.pop_back();
     }
+    self.prev_dir = self.dir;
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
@@ -137,22 +134,18 @@ impl Player {
 
   fn has_eaten_self(&mut self) -> bool {
     let has_eaten = self.tail.contains(&self.head);
+    println!("{:?} {:?}", self.dir, self.prev_dir);
     if has_eaten {
       println!("has eaten self");
     }
     return has_eaten;
   }
 
-  fn grow(&mut self) {
+  fn grow(&mut self, food: Cell) {
     // let prev_head = self.head;
-    let last_cell = if self.tail.len()> 0 {self.tail[self.tail.len()-1]} else {self.head};
-    match self.dir {
-      Dir::Left => self.tail.push_back(Cell::right(last_cell)),
-      Dir::Right => self.tail.push_back(Cell::left(last_cell)),
-      Dir::Up => self.tail.push_back(Cell::down(last_cell)),
-      Dir::Down => self.tail.push_back(Cell::up(last_cell)),
-      Dir::Static => ()
-    }
+    let prev_head = self.head;
+    self.head = food;
+    self.tail.push_front(prev_head);
   }
 }
 
@@ -222,11 +215,12 @@ impl State {
     self.player.update_direction(ctx);
     if self.ticks % 6 == 0 {
       self.player.update_position();
+      println!("{:?} {:?}", self.player.head, self.player.tail);
       if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
         self.mode = GameMode::Dead;
       }
       if self.player.head == self.food.pos {
-        self.player.grow();
+        self.player.grow(self.food.pos);
         self.food.respawn();
       }
     }
