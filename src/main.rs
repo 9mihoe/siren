@@ -105,7 +105,6 @@ impl Player {
   fn update_position(&mut self) {
     // Make sure if going left, cannot go right
     // etc. for all the incompatible direction
-    let prev_head = self.head;
     let prev_dir_hor = matches!(self.prev_dir, Dir::Left) || matches!(self.prev_dir, Dir::Right);
     let prev_dir_ver = matches!(self.prev_dir, Dir::Up) || matches!(self.prev_dir, Dir::Down);
     let curr_dir_hor = matches!(self.dir, Dir::Left) || matches!(self.dir, Dir::Right);
@@ -117,12 +116,15 @@ impl Player {
         Dir::Right => self.head = Cell::right(self.head),
         Dir::Up => self.head = Cell::up(self.head),
         Dir::Down => self.head = Cell::down(self.head),
-        Dir::Static => return
+        Dir::Static => ()
       }
-      self.tail.push_front(prev_head);
-      self.tail.pop_back();
       self.prev_dir = self.dir;
+    }else{
+      self.dir = self.prev_dir;
     }
+    let prev_head = self.head;
+    self.tail.push_front(prev_head);
+    self.tail.pop_back();
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
