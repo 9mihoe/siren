@@ -105,12 +105,22 @@ impl Player {
   fn update_position(&mut self) {
     // Make sure if going left, cannot go right
     // etc. for all the incompatible direction
+    let has_game_started = !matches!(self.dir, Dir::Static);
     let prev_dir_hor = matches!(self.prev_dir, Dir::Left) || matches!(self.prev_dir, Dir::Right);
     let prev_dir_ver = matches!(self.prev_dir, Dir::Up) || matches!(self.prev_dir, Dir::Down);
     let curr_dir_hor = matches!(self.dir, Dir::Left) || matches!(self.dir, Dir::Right);
     let curr_dir_ver = matches!(self.dir, Dir::Up) || matches!(self.dir, Dir::Down);
-    let is_valid_dir = (self.dir==self.prev_dir) || (prev_dir_hor && curr_dir_ver) || (prev_dir_ver && curr_dir_hor) || matches!(self.dir, Dir::Static) || matches!(self.prev_dir, Dir::Static);
-    if is_valid_dir {
+    let is_valid_dir = (self.dir==self.prev_dir) 
+      || (prev_dir_hor && curr_dir_ver) 
+      || (prev_dir_ver && curr_dir_hor) 
+      || matches!(self.prev_dir, Dir::Static);
+    let prev_head = self.head;
+    if has_game_started {
+      if is_valid_dir {
+        self.prev_dir = self.dir;
+      }else{
+        self.dir = self.prev_dir;
+      }
       match self.dir {
         Dir::Left => self.head = Cell::left(self.head),
         Dir::Right => self.head = Cell::right(self.head),
@@ -118,25 +128,21 @@ impl Player {
         Dir::Down => self.head = Cell::down(self.head),
         Dir::Static => ()
       }
-      self.prev_dir = self.dir;
-    }else{
-      self.dir = self.prev_dir;
+      self.tail.push_front(prev_head);
+      self.tail.pop_back();
     }
-    let prev_head = self.head;
-    self.tail.push_front(prev_head);
-    self.tail.pop_back();
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
+    // println!("{} {} {} {}", self.head.x+1, SCREEN_WIDTH, self.head.y+1, SCREEN_HEIGHT);
     return self.head.x+1 <= 0 
-      || self.head.x+1 >= SCREEN_WIDTH 
+      || self.head.x+1 >= (SCREEN_WIDTH/3) 
       || self.head.y+1 <= 0 
-      || self.head.y+1 >= SCREEN_HEIGHT;
+      || self.head.y+1 >= (SCREEN_HEIGHT/3);
   }
 
   fn has_eaten_self(&mut self) -> bool {
     let has_eaten = self.tail.contains(&self.head);
-    println!("{:?} {:?}", self.dir, self.prev_dir);
     if has_eaten {
       println!("has eaten self");
     }
@@ -144,7 +150,6 @@ impl Player {
   }
 
   fn grow(&mut self, food: Cell) {
-    // let prev_head = self.head;
     let prev_head = self.head;
     self.head = food;
     self.tail.push_front(prev_head);
@@ -172,6 +177,7 @@ impl Food {
   }
 
   fn respawn(&mut self) {
+    // TODO: Make sure the food cannot respawn on the snake.
     self.pos = Cell::new(
       self.pos_gen.range(2, 10), 
       self.pos_gen.range(2, 10)
@@ -217,7 +223,8 @@ impl State {
     self.player.update_direction(ctx);
     if self.ticks % 6 == 0 {
       self.player.update_position();
-      println!("{:?} {:?}", self.player.head, self.player.tail);
+      // println!("{:?} {:?}", self.player.dir, self.player.prev_dir);
+      // println!("{:?} {:?}", self.player.head, self.player.tail);
       if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
         self.mode = GameMode::Dead;
       }
