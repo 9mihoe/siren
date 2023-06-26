@@ -134,7 +134,6 @@ impl Player {
   }
 
   fn is_out_of_bounds(&mut self) -> bool {
-    // println!("{} {} {} {}", self.head.x+1, SCREEN_WIDTH, self.head.y+1, SCREEN_HEIGHT);
     return self.head.x+1 <= 0 
       || self.head.x+1 >= (SCREEN_WIDTH/3) 
       || self.head.y+1 <= 0 
@@ -176,12 +175,17 @@ impl Food {
     ctx.set_active_console(0);
   }
 
-  fn respawn(&mut self) {
-    // TODO: Make sure the food cannot respawn on the snake.
-    self.pos = Cell::new(
-      self.pos_gen.range(2, 10), 
-      self.pos_gen.range(2, 10)
-    );
+  fn respawn(&mut self, snake: &Player) {
+    let new_x = self.pos_gen.range(0, 12);
+    let new_y = self.pos_gen.range(0, 12);
+    let new_cell = Cell::new(new_x, new_y);
+    if snake.tail.contains(&new_cell) || (new_cell==snake.head) {
+      if new_x+1 < 12 {
+        self.pos = Cell::new(new_x+1, new_y);
+      }
+      self.pos = Cell::new(new_x, new_y+1);
+    }
+    self.pos = new_cell;
   }
 }
 
@@ -223,14 +227,12 @@ impl State {
     self.player.update_direction(ctx);
     if self.ticks % 6 == 0 {
       self.player.update_position();
-      // println!("{:?} {:?}", self.player.dir, self.player.prev_dir);
-      // println!("{:?} {:?}", self.player.head, self.player.tail);
       if self.player.has_eaten_self() || self.player.is_out_of_bounds() {
         self.mode = GameMode::Dead;
       }
       if self.player.head == self.food.pos {
         self.player.grow(self.food.pos);
-        self.food.respawn();
+        self.food.respawn(&self.player);
       }
     }
     self.player.render(ctx);
