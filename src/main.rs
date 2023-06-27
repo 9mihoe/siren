@@ -141,11 +141,7 @@ impl Player {
   }
 
   fn has_eaten_self(&mut self) -> bool {
-    let has_eaten = self.tail.contains(&self.head);
-    if has_eaten {
-      println!("has eaten self");
-    }
-    return has_eaten;
+    return self.tail.contains(&self.head);
   }
 
   fn grow(&mut self, food: Cell) {
@@ -190,6 +186,7 @@ impl Food {
 }
 
 enum GameMode {
+  Menu,
   Playing,
   Dead
 }
@@ -205,7 +202,7 @@ struct State {
 impl State {
   fn new() -> Self {
       State {
-        mode: GameMode::Playing,
+        mode: GameMode::Menu,
         player: Player::new(2, 2),
         ticks: 0,
         food: Food::new(),
@@ -213,9 +210,27 @@ impl State {
       }
   }
 
+  fn menu(&mut self, ctx: &mut BTerm) {
+    ctx.cls();
+    ctx.print_centered(5, "Welcome to Snek");
+    ctx.print_centered(8, "(P) Play Game");
+    ctx.print_centered(9, "(Q) Quit Game");
+
+    if let Some(key) = ctx.key {
+        match key {
+            VirtualKeyCode::P => {
+              self.mode = GameMode::Playing;
+              self.restart(ctx);
+            }
+            VirtualKeyCode::Q => ctx.quitting = true,
+            _ => {}
+        }
+    }
+  } 
+
   fn restart(&mut self, ctx: &mut BTerm) {
     ctx.cls();
-    self.player = Player::new(20, 20);
+    self.player = Player::new(10, 10);
     self.ticks = 0;
     self.food = Food::new();
     self.score = 0;
@@ -260,6 +275,7 @@ impl State {
 impl GameState for State {
   fn tick(&mut self, ctx: &mut BTerm) {
     match self.mode {
+      GameMode::Menu => self.menu(ctx),
       GameMode::Playing => self.play(ctx),
       GameMode::Dead => self.dead(ctx),
     }
